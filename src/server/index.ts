@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 
 new BootLoader(async () => {
     try {
-        await import("./endpoints/registry");
+        await import("./registry");
     } catch (error) {
         console.error("Failed to load registry endpoints:", error);
         return false;

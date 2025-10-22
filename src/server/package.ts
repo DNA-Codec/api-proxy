@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { app } from "..";
+import { app } from ".";
 
 /** Callback function of an endpoint */
 type EndpointCall = (req: Request, res: Response) => any;

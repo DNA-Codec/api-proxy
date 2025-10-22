@@ -1,8 +1,8 @@
 {
-  "name": "noodles-api-proxy",
-  "version": "0.0.1",
-  "description": "Noodles' API proxy server to handle routing between services",
-  "main": "dist/index.js",
+	"name": "noodles-api-proxy",
+	"version": "0.0.1",
+	"description": "Noodles' API proxy server to handle routing between services",
+	"main": "dist/index.js",
 	"scripts": {
 		"start": "node dist/index.js",
 		"build": "tsc",
@@ -13,7 +13,8 @@
 	"license": "ISC",
 	"packageManager": "pnpm@10.18.3",
 	"dependencies": {
-		"express": "^5.1.0"
+		"express": "^5.1.0",
+		"winston": "^3.18.3"
 	},
 	"devDependencies": {
 		"@types/express": "^5.0.3"

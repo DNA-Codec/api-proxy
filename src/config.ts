@@ -2,7 +2,12 @@ export const CONFIG = {
     /** Configuration relating to the server */
     server: {
         /** The port for the server to run on */
-        port: 3000,
+        port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+    },
+    /** Configuration relating to logging */
+    logger: {
+        /** The logging level to use */
+        level: process.env.LOG_LEVEL || "info",
     },
     proxy: {
         /** Mapping for subdomains to their target urls */

@@ -12,7 +12,7 @@ app.use(cookieParser());
 
 new BootLoader(async () => {
     try {
-        await import("./registry");
+        // await import("./registry");
         await import("./proxy");
     } catch (error) {
         logger.error("Failed to load registry endpoints:", error);

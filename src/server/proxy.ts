@@ -36,7 +36,7 @@ function verifyJWT(req: any): boolean {
     return true;
 }
 
-app.use("*", (req, res) => {
+app.all("/*path", (req, res) => {
     const subdomain = req.headers.host?.split(".")[0];
     const targetURLString = serviceMap[(subdomain || "") as keyof typeof serviceMap];
 

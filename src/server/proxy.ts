@@ -48,7 +48,7 @@ app.all("/*path", (req, res) => {
 
     // Check Authorization
     const publicPathContainer = PUBLIC_PATHS[subdomain as keyof typeof PUBLIC_PATHS];
-    const isPublicPath = publicPathContainer?.some(path => req.path.startsWith(path));
+    const isPublicPath = publicPathContainer?.some(path => req.path === path || req.path.startsWith(path + "/"));
     if (!isPublicPath && !verifyJWT(req)) {
         logger.warn(`Unauthorized request to ${req.path}`);
         res.status(401).send("Unauthorized");

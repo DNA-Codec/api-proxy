@@ -3,6 +3,7 @@ import http from "http";
 import { getLogger } from "../util/logger";
 import CONFIG from "../config";
 import jwt from "jsonwebtoken";
+import { Request } from "express";
 
 const logger = getLogger("PROXY");
 
@@ -36,18 +37,35 @@ function verifyJWT(req: any): boolean {
     return true;
 }
 
+function getDeterminant(req: Request): { determinant: string, path: string } | null {
+    if (CONFIG.proxy.routing.determinant === "subdomain") {
+        return { determinant: req.headers.host?.split(".")[0] || '', path: req.originalUrl };
+    } else if (CONFIG.proxy.routing.determinant === "path") {
+        const fixedPath = req.path.replace(`/${req.path.split("/")[1]}`, '');
+        return { determinant: req.path.split("/")[1] || '', path: fixedPath };
+    }
+    logger.warn(`Unknown routing determinant: ${CONFIG.proxy.routing.determinant}`);
+    return null;
+}
+
 app.all("/*path", (req, res) => {
-    const subdomain = req.headers.host?.split(".")[0];
-    const targetURLString = serviceMap[(subdomain || "") as keyof typeof serviceMap];
+    const determinantData = getDeterminant(req);
+    if (!determinantData) {
+        res.status(500).send("Server Configuration Error");
+        return;
+    }
+
+    const { determinant, path } = determinantData;
+    const targetURLString = serviceMap[(determinant || "") as keyof typeof serviceMap];
 
     if (!targetURLString) {
-        logger.warn(`Unknown subdomain: ${subdomain}`);
+        logger.warn(`Unknown subdomain: ${determinant}`);
         res.status(502).send("Bad Gateway: Unknown Target");
         return;
     }
 
     // Check Authorization
-    const publicPathContainer = PUBLIC_PATHS[subdomain as keyof typeof PUBLIC_PATHS];
+    const publicPathContainer = PUBLIC_PATHS[determinant as keyof typeof PUBLIC_PATHS];
     const isPublicPath = publicPathContainer?.some(path => req.path === path || req.path.startsWith(path + "/"));
     if (!isPublicPath && !verifyJWT(req)) {
         logger.warn(`Unauthorized request to ${req.path}`);
@@ -57,14 +75,13 @@ app.all("/*path", (req, res) => {
 
     // Build the proxy request
     const targetURL = new URL(targetURLString);
-    const fullPath = req.originalUrl || req.url;
 
-    logger.info(`Proxying ${req.method} ${fullPath} -> ${targetURL.hostname}:${targetURL.port}`);
+    logger.info(`Proxying ${req.method} ${path} -> ${targetURL.hostname}:${targetURL.port}`);
 
     const proxyRequest = http.request({
         hostname: targetURL.hostname,
         port: targetURL.port,
-        path: fullPath,
+        path,
         method: req.method,
         headers: {
             ...req.headers,

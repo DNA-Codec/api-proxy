@@ -36,7 +36,13 @@ export const CONFIG = {
             secret: process.env.JWT_SECRET,
             /** Name of the cookie to extract JWT from */
             cookieName: process.env.JWT_COOKIE_NAME || "token",
-        }
+        },
+
+        /** Configuration relating to routing */
+        routing: {
+            /** Routing determination */
+            determinant: process.env.ROUTING_DETERMINANT || "path", // "subdomain" | "path"
+        },
     }
 };
 

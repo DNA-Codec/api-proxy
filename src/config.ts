@@ -3,6 +3,8 @@ export const CONFIG = {
     server: {
         /** The port for the server to run on */
         port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+        /** Settings related to allowed origins */
+        allowedOrigins: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(/[,;]/) : ["*"],
     },
     /** Configuration relating to logging */
     logger: {

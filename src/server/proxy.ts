@@ -10,31 +10,33 @@ const logger = getLogger("PROXY");
 const serviceMap = CONFIG.proxy.services;
 const PUBLIC_PATHS = CONFIG.proxy.publicPaths;
 
-function verifyJWT(req: any): boolean {
-    if (!CONFIG.proxy.jwt.enabled) return true;
+function verifyJWT(req: any): { success: boolean, payload: unknown } {
+    if (!CONFIG.proxy.jwt.enabled) return { success: true, payload: null };
 
     if (!CONFIG.proxy.jwt.secret) {
         logger.error("JWT secret is not configured.");
-        return false;
+        return { success: false, payload: null };
     }
 
     if (!CONFIG.proxy.jwt.cookieName) {
         logger.error("JWT cookie name is not configured.");
-        return false;
+        return { success: false, payload: null };
     }
 
     const token = req.cookies?.[CONFIG.proxy.jwt.cookieName];
-    if (!token) return false;
+    if (!token) {
+        logger.warn("JWT token not found in cookies.");
+        return { success: false, payload: null };
+    }
 
     try {
         const decoded = jwt.verify(token, CONFIG.proxy.jwt.secret);
         req.user = decoded;
+        return { success: true, payload: decoded };
     } catch (error) {
         logger.warn(`JWT verification failed: ${(error as Error).message || "unknown error"}`);
-        return false;
+        return { success: false, payload: null };
     }
-
-    return true;
 }
 
 function getDeterminant(req: Request): { determinant: string, path: string } | null {
@@ -42,7 +44,8 @@ function getDeterminant(req: Request): { determinant: string, path: string } | n
         return { determinant: req.headers.host?.split(".")[0] || '', path: req.originalUrl };
     } else if (CONFIG.proxy.routing.determinant === "path") {
         const fixedPath = req.path.replace(`/${req.path.split("/")[1]}`, '');
-        return { determinant: req.path.split("/")[1] || '', path: fixedPath };
+        const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+        return { determinant: req.path.split("/")[1] || '', path: fixedPath + queryString };
     }
     logger.warn(`Unknown routing determinant: ${CONFIG.proxy.routing.determinant}`);
     return null;
@@ -67,7 +70,8 @@ app.all("/*path", (req, res) => {
     // Check Authorization
     const publicPathContainer = PUBLIC_PATHS[determinant as keyof typeof PUBLIC_PATHS];
     const isPublicPath = publicPathContainer?.some(path => req.path === path || req.path.startsWith(path + "/"));
-    if (!isPublicPath && !verifyJWT(req)) {
+    const authResult = verifyJWT(req);
+    if (!isPublicPath && !authResult.success) {
         logger.warn(`Unauthorized request to ${req.path}`);
         res.status(401).send("Unauthorized");
         return;
@@ -86,6 +90,7 @@ app.all("/*path", (req, res) => {
         headers: {
             ...req.headers,
             host: targetURL.hostname,
+            "proxy-payload": JSON.stringify(authResult.payload),
         },
     });
 

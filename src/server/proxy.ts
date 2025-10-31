@@ -61,6 +61,10 @@ app.all("/*path", (req, res) => {
     const { determinant, path } = determinantData;
     const targetURLString = serviceMap[(determinant || "") as keyof typeof serviceMap];
 
+    logger.info(`[DEBUG] Incoming: ${req.method} ${req.originalUrl}`);
+    logger.info(`[DEBUG] Determinant: "${determinant}", Proxied Path: "${path}"`);
+    logger.info(`[DEBUG] Target URL: ${targetURLString}`);
+
     if (!targetURLString) {
         logger.warn(`Unknown subdomain: ${determinant}`);
         res.status(502).send("Bad Gateway: Unknown Target");
@@ -69,7 +73,9 @@ app.all("/*path", (req, res) => {
 
     // Check Authorization
     const publicPathContainer = PUBLIC_PATHS[determinant as keyof typeof PUBLIC_PATHS];
-    const isPublicPath = publicPathContainer?.some(publicPath => publicPath === path || req.path.startsWith(publicPath + "/"));
+    const isPublicPath = publicPathContainer?.some(publicPath => path === publicPath || path.startsWith(publicPath + "/"));
+    logger.info(`[DEBUG] Public paths for "${determinant}": ${JSON.stringify(publicPathContainer)}`);
+    logger.info(`[DEBUG] Is public path: ${isPublicPath}, checking against path: "${path}"`);
     const authResult = verifyJWT(req);
     if (!isPublicPath && !authResult.success) {
         logger.warn(`Unauthorized request to ${req.path}`);
@@ -110,6 +116,8 @@ app.all("/*path", (req, res) => {
 
     // Handle Piped Response
     proxyRequest.on("response", (proxyRes) => {
+        logger.info(`[DEBUG] Response from ${targetURL.hostname}: ${proxyRes.statusCode}`);
+        logger.info(`[DEBUG] Response headers: ${JSON.stringify(proxyRes.headers)}`);
         res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
         proxyRes.pipe(res);
     });

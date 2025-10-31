@@ -52,6 +52,15 @@ function getDeterminant(req: Request): { determinant: string, path: string } | n
 }
 
 app.all("/*path", (req, res) => {
+    logger.info(`[DEBUG] In proxy handler: ${req.method} ${req.originalUrl}`);
+
+    // CORS already handles this but if passed through then it means CORS allowed it
+    // in such a situation we just accept it, idk why this is happening but whatever
+    if (req.method === 'OPTIONS') {
+        logger.info(`[DEBUG] OPTIONS request in proxy handler - responding with 200`);
+        return res.status(200).end();
+    }
+
     const determinantData = getDeterminant(req);
     if (!determinantData) {
         res.status(500).send("Server Configuration Error");

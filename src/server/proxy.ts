@@ -18,6 +18,20 @@ function verifyJWT(req: any): { success: boolean, payload: unknown } {
         return { success: false, payload: null };
     }
 
+    // Check Auth Header
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+            const decoded = jwt.verify(token, CONFIG.proxy.jwt.secret);
+            req.user = decoded;
+            return { success: true, payload: decoded };
+        } catch (error) {
+            logger.warn(`JWT verification failed (Bearer): ${(error as Error).message || "unknown error"}`);
+        }
+    }
+
+    // Check JWT
     if (!CONFIG.proxy.jwt.cookieName) {
         logger.error("JWT cookie name is not configured.");
         return { success: false, payload: null };
@@ -25,7 +39,7 @@ function verifyJWT(req: any): { success: boolean, payload: unknown } {
 
     const token = req.cookies?.[CONFIG.proxy.jwt.cookieName];
     if (!token) {
-        logger.warn("JWT token not found in cookies.");
+        logger.warn("JWT token not found in cookies or Authorization header.");
         return { success: false, payload: null };
     }
 
@@ -34,7 +48,7 @@ function verifyJWT(req: any): { success: boolean, payload: unknown } {
         req.user = decoded;
         return { success: true, payload: decoded };
     } catch (error) {
-        logger.warn(`JWT verification failed: ${(error as Error).message || "unknown error"}`);
+        logger.warn(`JWT verification failed (Cookie): ${(error as Error).message || "unknown error"}`);
         return { success: false, payload: null };
     }
 }

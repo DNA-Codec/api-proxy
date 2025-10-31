@@ -31,7 +31,19 @@ function verifyJWT(req: any): { success: boolean, payload: unknown } {
         }
     }
 
-    // Check JWT
+    // Check Token Query
+    if (req.query?.token) {
+        const token = req.query.token;
+        try {
+            const decoded = jwt.verify(token, CONFIG.proxy.jwt.secret);
+            req.user = decoded;
+            return { success: true, payload: decoded };
+        } catch (error) {
+            logger.warn(`JWT verification failed (Query): ${(error as Error).message || "unknown error"}`);
+        }
+    }
+
+    // Check JWT Cookie
     if (!CONFIG.proxy.jwt.cookieName) {
         logger.error("JWT cookie name is not configured.");
         return { success: false, payload: null };
@@ -39,7 +51,7 @@ function verifyJWT(req: any): { success: boolean, payload: unknown } {
 
     const token = req.cookies?.[CONFIG.proxy.jwt.cookieName];
     if (!token) {
-        logger.warn("JWT token not found in cookies or Authorization header.");
+        logger.warn("JWT token not found in cookies or authorization header or token query.");
         return { success: false, payload: null };
     }
 

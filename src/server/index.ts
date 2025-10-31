@@ -10,8 +10,17 @@ const logger = getLogger("SERVER");
 export const app = express();
 
 const corsOptions: cors.CorsOptions = {
-    origin: CONFIG.server.allowedOrigins,
-    credentials: true,
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+
+        if (CONFIG.server.allowedOrigins[0] !== "*") {
+            if (CONFIG.server.allowedOrigins.includes(origin)) return callback(null, true);
+            else return callback(new Error('Not allowed by CORS'));
+        }
+
+        callback(null, true);
+    },
+    credentials: true
 };
 
 app.use(cors(corsOptions));
